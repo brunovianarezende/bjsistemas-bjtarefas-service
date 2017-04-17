@@ -1,4 +1,3 @@
-import org.scalatra.sbt._
 import sbt.Keys.libraryDependencies
 
 val slickVersion = "3.2.0"
@@ -45,6 +44,12 @@ lazy val api = (project in file("api"))
   .disablePlugins(RevolverPlugin)
   .settings(commonSettings: _*)
   .settings(apiDependencies)
+
+lazy val apiIntegration = (project in file("apiIntegration"))
+  .disablePlugins(RevolverPlugin)
+  .settings(commonSettings: _*)
+  .dependsOn(api % "compile->compile;test->test")
+
 
 lazy val service = (project in file("service"))
   .settings(commonSettings: _*)
