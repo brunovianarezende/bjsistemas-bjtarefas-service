@@ -2,7 +2,6 @@ package nom.bruno.tasksservice.repositories
 
 import nom.bruno.tasksservice.Tables
 import nom.bruno.tasksservice.Tables.Task
-import nom.bruno.tasksservice.services.TaskRepository
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuite, Matchers}
 import slick.jdbc.JdbcBackend.Database
 import slick.jdbc.MySQLProfile.api._
