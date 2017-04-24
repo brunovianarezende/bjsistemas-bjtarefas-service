@@ -9,6 +9,8 @@ val logDependencies = libraryDependencies ++= Seq(
 
 val akkaHttpVersion = "10.0.5"
 
+val mysqlDependency = "mysql" % "mysql-connector-java" % "5.1.23"
+
 val serviceDependencies = libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
@@ -20,10 +22,9 @@ val serviceDependencies = libraryDependencies ++= Seq(
 val apiDependencies = libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % "7.2.10",
   "com.google.inject" % "guice" % "4.1.0",
-  "mysql" % "mysql-connector-java" % "5.1.23",
   "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
   "com.typesafe.slick" %% "slick" % slickVersion,
-  "mysql" % "mysql-connector-java" % "5.1.23",
+  mysqlDependency,
   "commons-codec" % "commons-codec" % "1.9",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   "org.mockito" % "mockito-core" % "2.7.21" % "test"
@@ -58,5 +59,14 @@ lazy val service = (project in file("service"))
   .settings(serviceDependencies)
   .settings(logDependencies)
   .dependsOn(api)
+
+lazy val flyway = (project in file("flyway"))
+  .settings(libraryDependencies += "org.flywaydb" % "flyway-core" % "4.0")
+  .settings(libraryDependencies += mysqlDependency)
+  .settings(flywayLocations := Seq("classpath:db/migration"))
+  .settings(flywayUrl := sys.env.getOrElse("DB_DEFAULT_URL", "jdbc:mysql://localhost/tasks_test"))
+  .settings(flywayUser := sys.env.getOrElse("DB_DEFAULT_USER", "task"))
+  .settings(flywayPassword := sys.env.getOrElse("DB_DEFAULT_PASSWORD", ""))
+  .enablePlugins(FlywayPlugin)
 
 onLoad in Global := (onLoad in Global).value andThen (Command.process("project service", _))
