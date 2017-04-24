@@ -1,12 +1,15 @@
 package nom.bruno.tasksservice.services
 
-import nom.bruno.tasksservice.Tables.Task
+import javax.inject.Inject
 
-class TasksService {
-  def getTasks: Seq[Task] = {
-    Seq(
-      Task(Some(1), "Task", "Description"),
-      Task(Some(2), "Task 2", "Description 2")
-    )
+import nom.bruno.tasksservice.Tables.Task
+import nom.bruno.tasksservice.repositories.TaskRepository
+
+import scala.concurrent.Future
+
+class TasksService @Inject()(taskRepository: TaskRepository) {
+
+  def getTasks: Future[Seq[Task]] = {
+    taskRepository.getAllTasks
   }
 }

@@ -25,7 +25,8 @@ val apiDependencies = libraryDependencies ++= Seq(
   "com.typesafe.slick" %% "slick" % slickVersion,
   "mysql" % "mysql-connector-java" % "5.1.23",
   "commons-codec" % "commons-codec" % "1.9",
-  "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+  "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+  "org.mockito" % "mockito-core" % "2.7.21" % "test"
 )
 
 val commonSettings = Seq(
