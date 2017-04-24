@@ -39,6 +39,7 @@ val commonSettings = Seq(
 lazy val root = (project in file("."))
   .disablePlugins(RevolverPlugin)
   .settings(commonSettings: _*)
+  .settings(addCommandAlias("testAll", ";api/test;apiIntegration/test;service/test"): _*)
   .aggregate(api, service)
 
 lazy val api = (project in file("api"))

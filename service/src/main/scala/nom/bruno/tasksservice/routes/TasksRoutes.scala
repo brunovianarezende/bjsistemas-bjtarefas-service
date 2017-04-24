@@ -9,7 +9,9 @@ import nom.bruno.tasksservice.services.TasksService
 class TasksRoutes @Inject()(tasksService: TasksService) extends BaseRoutes {
   override def routes: Route = path("tasks") {
     get {
-      complete(Ok(tasksService.getTasks))
+      onSuccess(tasksService.getTasks) {tasks =>
+        complete(Ok(tasks))
+      }
     }
   }
 }
