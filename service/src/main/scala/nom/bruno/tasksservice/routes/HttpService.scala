@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Guice}
+import slick.jdbc.JdbcBackend.Database
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -13,6 +14,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object HttpService extends App {
   private val injector = Guice.createInjector(new AbstractModule {
     override def configure(): Unit = {
+      val db = Database.forConfig("mysql")
+
+      bind(classOf[Database]).toInstance(db)
       bind(classOf[ExecutionContext]).annotatedWith(Names.named("EC")).toInstance(global)
     }
   })
