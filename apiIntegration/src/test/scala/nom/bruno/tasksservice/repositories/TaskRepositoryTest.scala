@@ -13,7 +13,7 @@ import scala.concurrent.{Await, ExecutionContext}
 class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
   protected implicit def executor: ExecutionContext = Implicits.global
 
-  lazy val db = Database.forConfig("mysql")
+  lazy val db: Database = Database.forConfig("mysql")
   var task1 = Task(None, "First task", "This is the first task")
   var task2 = Task(None, "Second task", "This is the second task")
 
@@ -31,7 +31,7 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
     super.beforeEach()
     val addTasks = (Tables.tasks returning Tables.tasks.map(_.id)) ++= Seq(task1, task2)
     val tasksIds = Await.result(db.run(addTasks), Duration.Inf)
-    this.task1 = this.task1.copy(id = Some(tasksIds(0)))
+    this.task1 = this.task1.copy(id = Some(tasksIds.head))
     this.task2 = this.task2.copy(id = Some(tasksIds(1)))
   }
 
@@ -41,10 +41,38 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
     Await.result(db.run(cleanUpActions), Duration.Inf)
   }
 
-  test("test can get all tasks") {
+  test("can get all tasks") {
     val taskRepository = new TaskRepository(db)
     val tasks = Await.result(taskRepository.getAllTasks, Duration.Inf)
     tasks should be(Seq(task1, task2))
+  }
+
+  test("can delete task") {
+    val taskRepository = new TaskRepository(db)
+    val numDeleted = Await.result(taskRepository.deleteTask(task1.id.get), Duration.Inf)
+    numDeleted should be(1)
+    val tasks = Await.result(taskRepository.getAllTasks, Duration.Inf)
+    tasks should be(Seq(task2))
+  }
+
+  test("trying to delete a task that doesn't exist shouldn't cause a problem") {
+    val taskRepository = new TaskRepository(db)
+    val numDeleted = Await.result(taskRepository.deleteTask(-1), Duration.Inf)
+    numDeleted should be(0)
+    val tasks = Await.result(taskRepository.getAllTasks, Duration.Inf)
+    tasks should be(Seq(task1, task2))
+  }
+
+  test("get task") {
+    val taskRepository = new TaskRepository(db)
+    val task = Await.result(taskRepository.getTask(task1.id.get), Duration.Inf)
+    task should be(Some(task1))
+  }
+
+  test("get task that doesn't exist") {
+    val taskRepository = new TaskRepository(db)
+    val task = Await.result(taskRepository.getTask(-1), Duration.Inf)
+    task should be(None)
   }
 
 }

@@ -8,8 +8,8 @@ import nom.bruno.tasksservice.Result
 trait BaseRoutes extends JsonProtocol {
   def routes: Route
 
-  def Ok[T](content: T) = Result[T](true, Some(content), None)
-
+  def Ok[T](content: T): Result[T] = Result[T](true, Some(content), None)
+  def Ok: Result[Unit] = Result(true, None, None)
 }
 
 class AllRoutes @Inject()(tasksRoutes: TasksRoutes)

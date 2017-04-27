@@ -4,7 +4,7 @@ import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Guice}
 import nom.bruno.tasksservice.Tables.Task
 import nom.bruno.tasksservice.repositories.TaskRepository
-import org.mockito.Mockito.{mock, reset, when}
+import org.mockito.Mockito.{mock, reset, when, verify, times}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuite, Matchers}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -36,4 +36,20 @@ class TasksServiceTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     Await.result(service.getTasks, Duration.Inf) should be(expectedTasks)
   }
 
+  test("get task") {
+    val task = Task(Some(1), "title", "description")
+    when(taskRepository.getTask(task.id.get)).thenReturn(Future(Some(task)))
+    val service = injector.getInstance(classOf[TasksService])
+    Await.result(service.getTask(task.id.get), Duration.Inf) should be(Some(task))
+  }
+
+  test("delete task") {
+    val task = Task(Some(1), "title", "description")
+    when(taskRepository.deleteTask(1)).thenReturn(Future {
+      1
+    })
+    val service = injector.getInstance(classOf[TasksService])
+    Await.result(service.deleteTask(task), Duration.Inf)
+    verify(taskRepository, times(1)).deleteTask(1)
+  }
 }
