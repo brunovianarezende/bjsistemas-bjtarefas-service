@@ -10,6 +10,16 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class TaskRepository @Inject()(val db: Database)
                               (@Named("EC") implicit val executionContext: ExecutionContext) {
+  def updateTask(taskToUpdate: Task): Future[Int] = {
+    val q = for {
+      t <- tasks if t.id === taskToUpdate.id
+    } yield {
+      (t.title, t.description)
+    }
+    val updateAction = q.update(taskToUpdate.title, taskToUpdate.description)
+    db.run(updateAction)
+  }
+
   def getAllTasks: Future[Seq[Task]] = {
     val query = tasks
     db.run(query.result)

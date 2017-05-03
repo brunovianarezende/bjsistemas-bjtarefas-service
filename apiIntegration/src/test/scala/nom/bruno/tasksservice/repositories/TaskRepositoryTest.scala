@@ -75,4 +75,21 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
     task should be(None)
   }
 
+  test("update task") {
+    val taskRepository = new TaskRepository(db)
+    val updatedTask = task1.copy(title = "New Title", description = "New description")
+    Await.result(taskRepository.updateTask(updatedTask), Duration.Inf)
+    val task = Await.result(taskRepository.getTask(task1.id.get), Duration.Inf)
+    task should be(Some(updatedTask))
+  }
+
+
+  test("trying to update a task that doesn't exist shouldn't cause a problem") {
+    val taskRepository = new TaskRepository(db)
+    val task = new Task(Some(-1), "a", "b")
+    val numUpdated = Await.result(taskRepository.updateTask(task), Duration.Inf)
+    numUpdated should be(0)
+    val tasks = Await.result(taskRepository.getAllTasks, Duration.Inf)
+    tasks should be(Seq(task1, task2))
+  }
 }

@@ -2,9 +2,10 @@ package nom.bruno.tasksservice.services
 
 import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Guice}
+import nom.bruno.tasksservice.ChangeTask
 import nom.bruno.tasksservice.Tables.Task
 import nom.bruno.tasksservice.repositories.TaskRepository
-import org.mockito.Mockito.{mock, reset, when, verify, times}
+import org.mockito.Mockito.{mock, reset, times, verify, when}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuite, Matchers}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -51,5 +52,33 @@ class TasksServiceTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     val service = injector.getInstance(classOf[TasksService])
     Await.result(service.deleteTask(task), Duration.Inf)
     verify(taskRepository, times(1)).deleteTask(1)
+  }
+
+  test("update task") {
+    val task = Task(Some(1), "title", "description")
+    when(taskRepository.updateTask(task)).thenReturn(Future {
+      1
+    })
+    val service = injector.getInstance(classOf[TasksService])
+    Await.result(service.updateTask(task), Duration.Inf)
+    verify(taskRepository, times(1)).updateTask(task)
+  }
+
+  test("validate update task") {
+    val task = Task(Some(1), "title", "description")
+    val taskUpdate = ChangeTask(Some("new title"), Some("new description"))
+    when(taskRepository.getTask(task.id.get)).thenReturn(Future(Some(task)))
+    val service = injector.getInstance(classOf[TasksService])
+    val updatedTask = Await.result(service.validateUpdateTask(1, taskUpdate), Duration.Inf)
+    updatedTask.get should equal(Task(Some(1), "new title", "new description"))
+  }
+
+  test("validate update task - No task found") {
+    val task = Task(Some(1), "title", "description")
+    val taskUpdate = ChangeTask(Some("new title"), Some("new description"))
+    when(taskRepository.getTask(task.id.get)).thenReturn(Future(None))
+    val service = injector.getInstance(classOf[TasksService])
+    val updatedTask = Await.result(service.validateUpdateTask(1, taskUpdate), Duration.Inf)
+    updatedTask should be(None)
   }
 }
