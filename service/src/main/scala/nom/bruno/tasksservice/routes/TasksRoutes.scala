@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import nom.bruno.tasksservice.routes.Directives._
 import nom.bruno.tasksservice.services.TasksService
-import nom.bruno.tasksservice.{ChangeTask, Error}
+import nom.bruno.tasksservice.{Error, TaskCreation, TaskUpdate}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -21,6 +21,12 @@ class TasksRoutes @Inject()(tasksService: TasksService)
     get {
       onSuccess(tasksService.getTasks) { tasks =>
         complete(Ok(tasks))
+      }
+    } ~ post {
+      entity(as[TaskCreation]) { taskData =>
+        unwrapSuccess(tasksService.addTask(taskData) map { newTask =>
+          complete(Ok(newTask.id.get))
+        })
       }
     }
   } ~
@@ -42,7 +48,7 @@ class TasksRoutes @Inject()(tasksService: TasksService)
           }
         }
       } ~ put {
-        entity(as[ChangeTask]) { taskUpdate =>
+        entity(as[TaskUpdate]) { taskUpdate =>
           lazy val taskNotFound = complete(404, Fail(Error.TaskDoesntExist))
           Try(taskId.toInt) match {
             case Success(id) => {

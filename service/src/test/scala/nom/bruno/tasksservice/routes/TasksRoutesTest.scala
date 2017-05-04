@@ -1,15 +1,14 @@
-package nom.bruno.tasksservice.services
+package nom.bruno.tasksservice.routes
 
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Guice}
 import nom.bruno.tasksservice.Tables.Task
-import nom.bruno.tasksservice.routes.{AllRoutes, JsonProtocol}
-import nom.bruno.tasksservice.{ChangeTask, Error, Result}
-import org.mockito.Mockito._
+import nom.bruno.tasksservice.services.TasksService
+import nom.bruno.tasksservice.{Error, Result, TaskCreation, TaskUpdate}
 import org.mockito.ArgumentMatchers._
+import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterEach, FeatureSpec, Matchers}
-import spray.json.pimpAny
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -86,7 +85,7 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
   feature("update task") {
     scenario("update task that exists") {
       val task: Task = Task(Some(1), "title", "description")
-      val taskUpdate: ChangeTask = ChangeTask(Some("new title"), Some("new description"))
+      val taskUpdate: TaskUpdate = TaskUpdate(Some("new title"), Some("new description"))
       val updatedTask: Task = task.copy(title = taskUpdate.title.get, description = taskUpdate.description.get)
 
       when(taskService.validateUpdateTask(1, taskUpdate)).thenReturn(Future(Some(updatedTask)))
@@ -103,7 +102,7 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
 
     scenario("update task that doesn't exist") {
       val task: Task = Task(Some(1), "title", "description")
-      val taskUpdate: ChangeTask = ChangeTask(Some("new title"), Some("new description"))
+      val taskUpdate: TaskUpdate = TaskUpdate(Some("new title"), Some("new description"))
 
       when(taskService.validateUpdateTask(1, taskUpdate)).thenReturn(Future(None))
 
@@ -117,7 +116,7 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
     }
 
     scenario("update task with an invalid id") {
-      val taskUpdate: ChangeTask = ChangeTask(Some("new title"), Some("new description"))
+      val taskUpdate: TaskUpdate = TaskUpdate(Some("new title"), Some("new description"))
 
       Put("/tasks/invalid", taskUpdate) ~>
         routesService.routes ~> check {
@@ -127,5 +126,25 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
         result.errors should be(Some(List(Error.TaskDoesntExist)))
       }
     }
+  }
+
+  feature("add task") {
+    scenario("new task") {
+      val id = 1
+      val title = "title"
+      val description = "description"
+      val taskData: TaskCreation = TaskCreation(title, description)
+
+      when(taskService.addTask(taskData)).thenReturn(Future(Task(Some(id), title, description)))
+
+      Post("/tasks", taskData) ~>
+        routesService.routes ~> check {
+        status.intValue should equal(200)
+        val result = responseAs[Result[Int]]
+        result.success should be(true)
+        result.data should be(Some(id))
+      }
+    }
+
   }
 }

@@ -92,4 +92,14 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
     val tasks = Await.result(taskRepository.getAllTasks, Duration.Inf)
     tasks should be(Seq(task1, task2))
   }
+
+  test("Add task") {
+    val taskRepository = new TaskRepository(db)
+    val task = new Task(None, "a", "b")
+    val newId = Await.result(taskRepository.addTask(task), Duration.Inf)
+    assert(newId > 0)
+    val newTask = task.copy(id=Some(newId))
+    val tasks = Await.result(taskRepository.getAllTasks, Duration.Inf)
+    tasks.sortBy(_.id) should be(Seq(task1, task2, newTask))
+  }
 }

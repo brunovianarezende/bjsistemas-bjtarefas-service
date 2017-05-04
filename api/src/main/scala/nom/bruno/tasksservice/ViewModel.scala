@@ -9,4 +9,6 @@ object Error {
 
 case class Result[T](success: Boolean, data: Option[T], errors: Option[List[Error]])
 
-case class ChangeTask(title: Option[String], description: Option[String])
+case class TaskUpdate(title: Option[String], description: Option[String])
+
+case class TaskCreation(title: String, description: String)

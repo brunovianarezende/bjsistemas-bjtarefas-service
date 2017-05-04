@@ -34,4 +34,8 @@ class TaskRepository @Inject()(val db: Database)
     val query = tasks.filter(_.id === id).delete
     db.run(query)
   }
+
+  def addTask(task: Task): Future[Int] = {
+    db.run((tasks returning tasks.map(_.id)) += task)
+  }
 }

@@ -2,7 +2,7 @@ package nom.bruno.tasksservice.services
 
 import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Guice}
-import nom.bruno.tasksservice.ChangeTask
+import nom.bruno.tasksservice.{TaskCreation, TaskUpdate}
 import nom.bruno.tasksservice.Tables.Task
 import nom.bruno.tasksservice.repositories.TaskRepository
 import org.mockito.Mockito.{mock, reset, times, verify, when}
@@ -66,7 +66,7 @@ class TasksServiceTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
   test("validate update task") {
     val task = Task(Some(1), "title", "description")
-    val taskUpdate = ChangeTask(Some("new title"), Some("new description"))
+    val taskUpdate = TaskUpdate(Some("new title"), Some("new description"))
     when(taskRepository.getTask(task.id.get)).thenReturn(Future(Some(task)))
     val service = injector.getInstance(classOf[TasksService])
     val updatedTask = Await.result(service.validateUpdateTask(1, taskUpdate), Duration.Inf)
@@ -75,10 +75,19 @@ class TasksServiceTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
   test("validate update task - No task found") {
     val task = Task(Some(1), "title", "description")
-    val taskUpdate = ChangeTask(Some("new title"), Some("new description"))
+    val taskUpdate = TaskUpdate(Some("new title"), Some("new description"))
     when(taskRepository.getTask(task.id.get)).thenReturn(Future(None))
     val service = injector.getInstance(classOf[TasksService])
     val updatedTask = Await.result(service.validateUpdateTask(1, taskUpdate), Duration.Inf)
     updatedTask should be(None)
+  }
+
+  test("add new task") {
+    val taskData = TaskCreation("title", "description")
+    val task = Task(None, "title", "description")
+    when(taskRepository.addTask(task)).thenReturn(Future(1))
+    val service = injector.getInstance(classOf[TasksService])
+    val newTask = Await.result(service.addTask(taskData), Duration.Inf)
+    newTask should equal(task.copy(id=Some(1)))
   }
 }
