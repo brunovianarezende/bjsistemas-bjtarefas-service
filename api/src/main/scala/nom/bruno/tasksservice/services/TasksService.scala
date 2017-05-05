@@ -33,8 +33,16 @@ class TasksService @Inject()(taskRepository: TaskRepository)
     taskRepository.getAllTasks
   }
 
+  def searchForTasks: Future[Seq[Task]] = {
+    taskRepository.getTasks(deleted = false)
+  }
+
   def deleteTask(task: Task): Future[Unit] = {
     taskRepository.deleteTask(task.id.get) map (_ => ())
+  }
+
+  def softDeleteTask(task: Task): Future[Unit] = {
+    taskRepository.markAsDeleted(task.id.get) map (_ => ())
   }
 
   def getTask(id: Int): Future[Option[Task]] = {

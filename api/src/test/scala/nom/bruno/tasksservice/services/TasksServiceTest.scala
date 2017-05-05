@@ -54,6 +54,16 @@ class TasksServiceTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     verify(taskRepository, times(1)).deleteTask(1)
   }
 
+  test("mark task as deleted") {
+    val task = Task(Some(1), "title", "description")
+    when(taskRepository.markAsDeleted(1)).thenReturn(Future {
+      1
+    })
+    val service = injector.getInstance(classOf[TasksService])
+    Await.result(service.softDeleteTask(task), Duration.Inf)
+    verify(taskRepository, times(1)).markAsDeleted(1)
+  }
+
   test("update task") {
     val task = Task(Some(1), "title", "description")
     when(taskRepository.updateTask(task)).thenReturn(Future {
@@ -89,5 +99,14 @@ class TasksServiceTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     val service = injector.getInstance(classOf[TasksService])
     val newTask = Await.result(service.addTask(taskData), Duration.Inf)
     newTask should equal(task.copy(id=Some(1)))
+  }
+
+  test("search for tasks") {
+    val expectedTasks = Seq(
+      Task(Some(1), "title", "description"),
+      Task(Some(2), "title2", "description2"))
+    when(taskRepository.getTasks(deleted = false)).thenReturn(Future(expectedTasks))
+    val service = injector.getInstance(classOf[TasksService])
+    Await.result(service.searchForTasks, Duration.Inf) should be(expectedTasks)
   }
 }

@@ -5,7 +5,7 @@ import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Guice}
 import nom.bruno.tasksservice.Tables.Task
 import nom.bruno.tasksservice.services.TasksService
-import nom.bruno.tasksservice.{Error, Result, TaskCreation, TaskUpdate}
+import nom.bruno.tasksservice.{Error, Result, TaskCreation, TaskUpdate, TaskView}
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterEach, FeatureSpec, Matchers}
@@ -35,12 +35,15 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
       val expectedTasks = Seq(
         Task(Some(1), "title", "description"),
         Task(Some(2), "title2", "description2"))
-      when(taskService.getTasks).thenReturn(Future(expectedTasks))
+      when(taskService.searchForTasks).thenReturn(Future(expectedTasks))
       Get("/tasks") ~> routesService.routes ~> check {
         status.intValue should equal(200)
-        val result = responseAs[Result[Seq[Task]]]
+        val result = responseAs[Result[Seq[TaskView]]]
         result.success should be(true)
-        result.data.get should be(expectedTasks)
+        val expectedResponse = Seq(
+          TaskView(1, "title", "description"),
+          TaskView(2, "title2", "description2"))
+        result.data.get should be(expectedResponse)
       }
     }
   }
@@ -50,13 +53,14 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
       val task = Task(Some(1), "title", "description")
 
       when(taskService.getTask(1)).thenReturn(Future(Some(task)))
-      when(taskService.deleteTask(task)).thenReturn(Future(()))
+      when(taskService.softDeleteTask(task)).thenReturn(Future(()))
       Delete("/tasks/1") ~>
         routesService.routes ~> check {
         status.intValue should equal(200)
         val result = responseAs[Result[Unit]]
         result.success should be(true)
-        verify(taskService, times(1)).deleteTask(task)
+        verify(taskService, never()).deleteTask(any())
+        verify(taskService, times(1)).softDeleteTask(task)
       }
     }
 
@@ -68,6 +72,7 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
         val result = responseAs[Result[Unit]]
         result.success should be(true)
         verify(taskService, never()).deleteTask(any())
+        verify(taskService, never()).softDeleteTask(any())
       }
     }
 
@@ -78,6 +83,7 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
         val result = responseAs[Result[Unit]]
         result.success should be(true)
         verify(taskService, never()).deleteTask(any())
+        verify(taskService, never()).softDeleteTask(any())
       }
     }
   }

@@ -25,6 +25,11 @@ class TaskRepository @Inject()(val db: Database)
     db.run(query.result)
   }
 
+  def getTasks(deleted: Boolean = false): Future[Seq[Task]] = {
+    val query = tasks.filter(_.deleted === deleted)
+    db.run(query.result)
+  }
+
   def getTask(id: Int): Future[Option[Task]] = {
     val query = tasks.filter(_.id === id)
     db.run(query.result.headOption)
@@ -33,6 +38,16 @@ class TaskRepository @Inject()(val db: Database)
   def deleteTask(id: Int): Future[Int] = {
     val query = tasks.filter(_.id === id).delete
     db.run(query)
+  }
+
+  def markAsDeleted(id: Int): Future[Int] = {
+    val q = for {
+      t <- tasks if t.id === id
+    } yield {
+      (t.deleted)
+    }
+    val updateAction = q.update(true)
+    db.run(updateAction)
   }
 
   def addTask(task: Task): Future[Int] = {

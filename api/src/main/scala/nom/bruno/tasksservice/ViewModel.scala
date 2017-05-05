@@ -1,5 +1,7 @@
 package nom.bruno.tasksservice
 
+import nom.bruno.tasksservice.Tables.Task
+
 case class Error(code: Int, description: String)
 
 object Error {
@@ -9,6 +11,14 @@ object Error {
 
 case class Result[T](success: Boolean, data: Option[T], errors: Option[List[Error]])
 
+case class TaskView(id: Int, title: String, description: String)
+
 case class TaskUpdate(title: Option[String], description: Option[String])
 
 case class TaskCreation(title: String, description: String)
+
+object TaskView {
+  def from(task: Task): TaskView = {
+    TaskView(task.id.get, task.title, task.description)
+  }
+}

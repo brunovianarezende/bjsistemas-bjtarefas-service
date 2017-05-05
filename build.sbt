@@ -51,6 +51,9 @@ lazy val api = (project in file("api"))
 lazy val apiIntegration = (project in file("apiIntegration"))
   .disablePlugins(RevolverPlugin)
   .settings(commonSettings: _*)
+  .settings(
+    parallelExecution in Test := false
+  )
   .dependsOn(api % "compile->compile;test->test")
 
 
@@ -64,9 +67,9 @@ lazy val flyway = (project in file("flyway"))
   .settings(libraryDependencies += "org.flywaydb" % "flyway-core" % "4.0")
   .settings(libraryDependencies += mysqlDependency)
   .settings(flywayLocations := Seq("classpath:db/migration"))
-  .settings(flywayUrl := sys.env.getOrElse("DB_DEFAULT_URL", "jdbc:mysql://localhost/tasks_test"))
-  .settings(flywayUser := sys.env.getOrElse("DB_DEFAULT_USER", "task"))
-  .settings(flywayPassword := sys.env.getOrElse("DB_DEFAULT_PASSWORD", ""))
+  .settings(flywayUrl := sys.env.getOrElse("DB_URL", "jdbc:mysql://localhost/tasks_test"))
+  .settings(flywayUser := sys.env.getOrElse("DB_USER", "task"))
+  .settings(flywayPassword := sys.env.getOrElse("DB_PASSWORD", ""))
   .enablePlugins(FlywayPlugin)
 
 onLoad in Global := (onLoad in Global).value andThen (Command.process("project service", _))

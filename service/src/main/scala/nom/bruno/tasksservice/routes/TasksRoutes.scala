@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import nom.bruno.tasksservice.routes.Directives._
 import nom.bruno.tasksservice.services.TasksService
-import nom.bruno.tasksservice.{Error, TaskCreation, TaskUpdate}
+import nom.bruno.tasksservice.{Error, TaskCreation, TaskUpdate, TaskView}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -19,8 +19,8 @@ class TasksRoutes @Inject()(tasksService: TasksService)
 
   override def routes: Route = path("tasks") {
     get {
-      onSuccess(tasksService.getTasks) { tasks =>
-        complete(Ok(tasks))
+      onSuccess(tasksService.searchForTasks) { tasks =>
+        complete(Ok(tasks.map(TaskView.from(_))))
       }
     } ~ post {
       entity(as[TaskCreation]) { taskData =>
@@ -36,7 +36,7 @@ class TasksRoutes @Inject()(tasksService: TasksService)
           case Success(id) => {
             onSuccess(tasksService.getTask(id) map {
               case Some(task) => {
-                tasksService.deleteTask(task) map (_ => ())
+                tasksService.softDeleteTask(task) map (_ => ())
               }
               case None => ()
             }) { _ =>
