@@ -1,3 +1,4 @@
+import com.typesafe.sbt.packager.archetypes.ServerLoader
 import sbt.Keys.libraryDependencies
 
 val slickVersion = "3.2.0"
@@ -61,6 +62,15 @@ lazy val service = (project in file("service"))
   .settings(commonSettings: _*)
   .settings(serviceDependencies)
   .settings(logDependencies)
+  .enablePlugins(JavaServerAppPackaging, DebianPlugin)
+  .settings(Seq(
+    name := "Tasks service",
+    maintainer := "Bruno Rezende <brunovianarezende@gmail.com>",
+    packageSummary := "Tasks service",
+    packageDescription := "check package summary",
+    serverLoading in Debian := ServerLoader.Systemd,
+    debianPackageDependencies in Debian := Seq("mysql-server", "default-jdk")
+  ))
   .dependsOn(api)
 
 lazy val flyway = (project in file("flyway"))
@@ -71,5 +81,6 @@ lazy val flyway = (project in file("flyway"))
   .settings(flywayUser := sys.env.getOrElse("DB_USER", "task"))
   .settings(flywayPassword := sys.env.getOrElse("DB_PASSWORD", ""))
   .enablePlugins(FlywayPlugin)
+
 
 onLoad in Global := (onLoad in Global).value andThen (Command.process("project service", _))

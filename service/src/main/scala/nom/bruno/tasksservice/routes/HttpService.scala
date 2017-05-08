@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Guice}
+import com.typesafe.config.ConfigFactory
 import slick.jdbc.JdbcBackend.Database
 
 import scala.concurrent.ExecutionContext
@@ -12,6 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 
 object HttpService extends App {
+  private val config = ConfigFactory.load()
   private val injector = Guice.createInjector(new AbstractModule {
     override def configure(): Unit = {
       val db = Database.forConfig("mysql")
@@ -29,5 +31,5 @@ object HttpService extends App {
 
   implicit val dispatcher = system.dispatcher
 
-  Http().bindAndHandle(routesService.routes, "localhost", 8000)
+  Http().bindAndHandle(routesService.routes, config.getString("domain"), config.getInt("port"))
 }
