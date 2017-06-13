@@ -6,6 +6,7 @@ case class Error(code: Int, description: String)
 
 object Error {
   val TaskDoesntExist = Error(1, "Task doesn't exist")
+  val InvalidPosition = Error(10, "Invalid position")
   val BadSchema = Error(400, "Bad Schema")
 }
 

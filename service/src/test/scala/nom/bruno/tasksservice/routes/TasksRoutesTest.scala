@@ -14,6 +14,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with ScalatestRouteTest with BeforeAndAfterEach {
+  // with this "pretty" hack now IDEA will stop marking as invalid the valid tests...
+  implicit private def hackToFixIDEA = TildeArrow.injectIntoRoute
+
   private[this] val taskService: TasksService = mock(classOf[TasksService])
 
   private val injector = Guice.createInjector(new AbstractModule {
@@ -86,6 +89,7 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
         verify(taskService, never()).softDeleteTask(any())
       }
     }
+
   }
 
   feature("update task") {
@@ -107,7 +111,6 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
     }
 
     scenario("update task that doesn't exist") {
-      val task: Task = Task(Some(1), "title", "description")
       val taskUpdate: TaskUpdate = TaskUpdate(Some("new title"), Some("new description"))
 
       when(taskService.validateUpdateTask(1, taskUpdate)).thenReturn(Future(None))
@@ -132,6 +135,7 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
         result.errors should be(Some(List(Error.TaskDoesntExist)))
       }
     }
+
   }
 
   feature("add task") {
@@ -151,6 +155,109 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
         result.data should be(Some(id))
       }
     }
+  }
 
+  feature("move task") {
+    scenario("move task correctly") {
+      val id = 1
+      val task: Task = Task(Some(id), "title", "description")
+      val position = 3
+      when(taskService.getTask(id)).thenReturn(Future(Some(task)))
+      when(taskService.moveTask(task, position)).thenReturn(Future(()))
+      Post(s"/tasks/$id/moveTo/$position") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(200)
+        val result = responseAs[Result[Unit]]
+        result.success should be(true)
+        verify(taskService, times(1)).moveTask(task, position)
+      }
+    }
+
+    scenario("move task to position after the end") {
+      val id = 1
+      val task: Task = Task(Some(id), "title", "description")
+      val position = 43
+      when(taskService.getNumberOfTasks).thenReturn(Future(3))
+      when(taskService.getTask(id)).thenReturn(Future(Some(task)))
+      when(taskService.moveTask(task, position)).thenReturn(Future(()))
+      Post(s"/tasks/$id/moveTo/$position") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(200)
+        val result = responseAs[Result[Unit]]
+        result.success should be(true)
+        verify(taskService, times(1)).moveTask(task, position)
+      }
+    }
+
+    scenario("move task that doesn't exist") {
+      val id = 1
+      val position = 3
+      when(taskService.getTask(id)).thenReturn(Future(None))
+      Post(s"/tasks/$id/moveTo/$position") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(404)
+        val result = responseAs[Result[Unit]]
+        result.success should be(false)
+        result.errors should be(Some(List(Error.TaskDoesntExist)))
+        verify(taskService, never()).moveTask(any(), any())
+      }
+    }
+
+    scenario("move task with invalid id") {
+      val id = "invalid"
+      val position = 3
+      Post(s"/tasks/$id/moveTo/$position") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(404)
+        val result = responseAs[Result[Unit]]
+        result.success should be(false)
+        result.errors should be(Some(List(Error.TaskDoesntExist)))
+        verify(taskService, never()).moveTask(any(), any())
+      }
+    }
+
+    scenario("move task to invalid position - less than zero") {
+      val id = 1
+      val task: Task = Task(Some(id), "title", "description")
+      val position = -1
+      when(taskService.getTask(id)).thenReturn(Future(Some(task)))
+      when(taskService.validateTaskPosition(position)).thenReturn(Future(false))
+      Post(s"/tasks/$id/moveTo/$position") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(400)
+        val result = responseAs[Result[Unit]]
+        result.success should be(false)
+        result.errors should be(Some(List(Error.InvalidPosition)))
+        verify(taskService, never()).moveTask(any(), any())
+      }
+    }
+
+    scenario("move task to invalid position - not an integer") {
+      val id = 1
+      val task: Task = Task(Some(id), "title", "description")
+      val position = "invalid"
+      when(taskService.getTask(id)).thenReturn(Future(Some(task)))
+      Post(s"/tasks/$id/moveTo/$position") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(400)
+        val result = responseAs[Result[Unit]]
+        result.success should be(false)
+        result.errors should be(Some(List(Error.InvalidPosition)))
+        verify(taskService, never()).moveTask(any(), any())
+      }
+    }
+
+    scenario("move task with invalid id to invalid position") {
+      val id = "invalid"
+      val position = "invalid"
+      Post(s"/tasks/$id/moveTo/$position") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(400)
+        val result = responseAs[Result[Unit]]
+        result.success should be(false)
+        result.errors should be(Some(List(Error.InvalidPosition)))
+        verify(taskService, never()).moveTask(any(), any())
+      }
+    }
   }
 }

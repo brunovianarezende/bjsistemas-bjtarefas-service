@@ -15,5 +15,5 @@ trait BaseRoutes extends JsonProtocol {
 
 class AllRoutes @Inject()(tasksRoutes: TasksRoutes)
   extends BaseRoutes {
-  def routes = tasksRoutes.routes
+  def routes: Route = tasksRoutes.routes
 }
