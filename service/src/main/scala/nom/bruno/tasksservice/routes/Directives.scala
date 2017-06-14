@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Route
 import scala.concurrent.Future
 
 object Directives {
-  def unwrapSuccess(f: Future[Route]): Route = {
-    onSuccess(f) { r => r }
+  def onSuccessUnwrap(future: Future[Route]): Route = {
+    onSuccess(future) { route => route }
   }
 }

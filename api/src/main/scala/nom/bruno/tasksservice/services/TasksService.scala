@@ -10,13 +10,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class TasksService @Inject()(taskRepository: TaskRepository)
                             (@Named("EC") implicit val executionContext: ExecutionContext) {
-  def validateTaskPosition(position: Int): Future[Boolean] = ???
+  def placeTaskBefore(task1: Task, task2: Task): Future[Unit] = ???
 
-  def moveTask(task: Task, position: Int): Future[Unit] = {
-    Future{}
-  }
-
-  def getNumberOfTasks: Future[Int] = ???
+  def placeTaskAfter(task1: Task, task2: Task): Future[Unit] = ???
 
   def validateUpdateTask(id: Int, taskUpdate: TaskUpdate): Future[Option[Task]] = {
     taskRepository.getTask(id) map {

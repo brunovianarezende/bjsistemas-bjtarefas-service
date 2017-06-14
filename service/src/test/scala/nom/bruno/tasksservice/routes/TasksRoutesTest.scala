@@ -157,106 +157,150 @@ class TasksRoutesTest extends FeatureSpec with JsonProtocol with Matchers with S
     }
   }
 
-  feature("move task") {
-    scenario("move task correctly") {
-      val id = 1
-      val task: Task = Task(Some(id), "title", "description")
-      val position = 3
-      when(taskService.getTask(id)).thenReturn(Future(Some(task)))
-      when(taskService.moveTask(task, position)).thenReturn(Future(()))
-      Post(s"/tasks/$id/moveTo/$position") ~>
+  feature("move a task before other") {
+    scenario("move a task before other") {
+      val task1: Task = Task(Some(1), "title", "description")
+      val task2: Task = Task(Some(2), "title2", "description2")
+      when(taskService.getTask(task1.id.get)).thenReturn(Future(Some(task1)))
+      when(taskService.getTask(task2.id.get)).thenReturn(Future(Some(task2)))
+      when(taskService.placeTaskBefore(task1, task2)).thenReturn(Future(()))
+      Post(s"/tasks/${task1.id.get}/placeBefore/${task2.id.get}") ~>
         routesService.routes ~> check {
         status.intValue should equal(200)
         val result = responseAs[Result[Unit]]
         result.success should be(true)
-        verify(taskService, times(1)).moveTask(task, position)
-      }
-    }
-
-    scenario("move task to position after the end") {
-      val id = 1
-      val task: Task = Task(Some(id), "title", "description")
-      val position = 43
-      when(taskService.getNumberOfTasks).thenReturn(Future(3))
-      when(taskService.getTask(id)).thenReturn(Future(Some(task)))
-      when(taskService.moveTask(task, position)).thenReturn(Future(()))
-      Post(s"/tasks/$id/moveTo/$position") ~>
-        routesService.routes ~> check {
-        status.intValue should equal(200)
-        val result = responseAs[Result[Unit]]
-        result.success should be(true)
-        verify(taskService, times(1)).moveTask(task, position)
+        verify(taskService, times(1)).placeTaskBefore(task1, task2)
       }
     }
 
     scenario("move task that doesn't exist") {
       val id = 1
-      val position = 3
       when(taskService.getTask(id)).thenReturn(Future(None))
-      Post(s"/tasks/$id/moveTo/$position") ~>
+      val task2: Task = Task(Some(2), "title2", "description2")
+      when(taskService.getTask(task2.id.get)).thenReturn(Future(Some(task2)))
+      Post(s"/tasks/$id/placeBefore/${task2.id.get}") ~>
         routesService.routes ~> check {
         status.intValue should equal(404)
         val result = responseAs[Result[Unit]]
         result.success should be(false)
         result.errors should be(Some(List(Error.TaskDoesntExist)))
-        verify(taskService, never()).moveTask(any(), any())
+        verify(taskService, never()).placeTaskBefore(any(), any())
+      }
+    }
+
+    scenario("move task before a task that doesn't exist") {
+      val task1: Task = Task(Some(1), "title", "description")
+      val id = 2
+      when(taskService.getTask(id)).thenReturn(Future(None))
+      when(taskService.getTask(task1.id.get)).thenReturn(Future(Some(task1)))
+      Post(s"/tasks/${task1.id.get}/placeBefore/$id") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(404)
+        val result = responseAs[Result[Unit]]
+        result.success should be(false)
+        result.errors should be(Some(List(Error.TaskDoesntExist)))
+        verify(taskService, never()).placeTaskBefore(any(), any())
       }
     }
 
     scenario("move task with invalid id") {
       val id = "invalid"
-      val position = 3
-      Post(s"/tasks/$id/moveTo/$position") ~>
+      val task2: Task = Task(Some(2), "title2", "description2")
+      when(taskService.getTask(task2.id.get)).thenReturn(Future(Some(task2)))
+      Post(s"/tasks/$id/placeBefore/${task2.id.get}") ~>
         routesService.routes ~> check {
         status.intValue should equal(404)
         val result = responseAs[Result[Unit]]
         result.success should be(false)
         result.errors should be(Some(List(Error.TaskDoesntExist)))
-        verify(taskService, never()).moveTask(any(), any())
+        verify(taskService, never()).placeTaskBefore(any(), any())
       }
     }
 
-    scenario("move task to invalid position - less than zero") {
-      val id = 1
-      val task: Task = Task(Some(id), "title", "description")
-      val position = -1
-      when(taskService.getTask(id)).thenReturn(Future(Some(task)))
-      when(taskService.validateTaskPosition(position)).thenReturn(Future(false))
-      Post(s"/tasks/$id/moveTo/$position") ~>
+    scenario("move task before a task with invalid id") {
+      val task1: Task = Task(Some(1), "title", "description")
+      when(taskService.getTask(task1.id.get)).thenReturn(Future(Some(task1)))
+      Post(s"/tasks/${task1.id.get}/placeBefore/invalid") ~>
         routesService.routes ~> check {
-        status.intValue should equal(400)
+        status.intValue should equal(404)
         val result = responseAs[Result[Unit]]
         result.success should be(false)
-        result.errors should be(Some(List(Error.InvalidPosition)))
-        verify(taskService, never()).moveTask(any(), any())
+        result.errors should be(Some(List(Error.TaskDoesntExist)))
+        verify(taskService, never()).placeTaskBefore(any(), any())
+      }
+    }
+  }
+
+  feature("move a task after other") {
+    scenario("move a task after other") {
+      val task1: Task = Task(Some(1), "title", "description")
+      val task2: Task = Task(Some(2), "title2", "description2")
+      when(taskService.getTask(task1.id.get)).thenReturn(Future(Some(task1)))
+      when(taskService.getTask(task2.id.get)).thenReturn(Future(Some(task2)))
+      when(taskService.placeTaskAfter(task1, task2)).thenReturn(Future(()))
+      Post(s"/tasks/${task1.id.get}/placeAfter/${task2.id.get}") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(200)
+        val result = responseAs[Result[Unit]]
+        result.success should be(true)
+        verify(taskService, times(1)).placeTaskAfter(task1, task2)
       }
     }
 
-    scenario("move task to invalid position - not an integer") {
+    scenario("move task that doesn't exist") {
       val id = 1
-      val task: Task = Task(Some(id), "title", "description")
-      val position = "invalid"
-      when(taskService.getTask(id)).thenReturn(Future(Some(task)))
-      Post(s"/tasks/$id/moveTo/$position") ~>
+      when(taskService.getTask(id)).thenReturn(Future(None))
+      val task2: Task = Task(Some(2), "title2", "description2")
+      when(taskService.getTask(task2.id.get)).thenReturn(Future(Some(task2)))
+      Post(s"/tasks/$id/placeAfter/${task2.id.get}") ~>
         routesService.routes ~> check {
-        status.intValue should equal(400)
+        status.intValue should equal(404)
         val result = responseAs[Result[Unit]]
         result.success should be(false)
-        result.errors should be(Some(List(Error.InvalidPosition)))
-        verify(taskService, never()).moveTask(any(), any())
+        result.errors should be(Some(List(Error.TaskDoesntExist)))
+        verify(taskService, never()).placeTaskAfter(any(), any())
       }
     }
 
-    scenario("move task with invalid id to invalid position") {
+    scenario("move task after a task that doesn't exist") {
+      val task1: Task = Task(Some(1), "title", "description")
+      val id = 2
+      when(taskService.getTask(id)).thenReturn(Future(None))
+      when(taskService.getTask(task1.id.get)).thenReturn(Future(Some(task1)))
+      Post(s"/tasks/${task1.id.get}/placeAfter/$id") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(404)
+        val result = responseAs[Result[Unit]]
+        result.success should be(false)
+        result.errors should be(Some(List(Error.TaskDoesntExist)))
+        verify(taskService, never()).placeTaskAfter(any(), any())
+      }
+    }
+
+    scenario("move task with invalid id") {
       val id = "invalid"
-      val position = "invalid"
-      Post(s"/tasks/$id/moveTo/$position") ~>
+      val task2: Task = Task(Some(2), "title2", "description2")
+      when(taskService.getTask(task2.id.get)).thenReturn(Future(Some(task2)))
+      Post(s"/tasks/$id/placeAfter/${task2.id.get}") ~>
         routesService.routes ~> check {
-        status.intValue should equal(400)
+        status.intValue should equal(404)
         val result = responseAs[Result[Unit]]
         result.success should be(false)
-        result.errors should be(Some(List(Error.InvalidPosition)))
-        verify(taskService, never()).moveTask(any(), any())
+        result.errors should be(Some(List(Error.TaskDoesntExist)))
+        verify(taskService, never()).placeTaskAfter(any(), any())
+      }
+    }
+
+    scenario("move task after a task with invalid id") {
+      val task1: Task = Task(Some(1), "title", "description")
+      when(taskService.getTask(task1.id.get)).thenReturn(Future(Some(task1)))
+      Post(s"/tasks/${task1.id.get}/placeAfter/invalid") ~>
+        routesService.routes ~> check {
+        status.intValue should equal(404)
+        val result = responseAs[Result[Unit]]
+        result.success should be(false)
+        result.errors should be(Some(List(Error.TaskDoesntExist)))
+        verify(taskService, never()).placeTaskAfter(any(), any())
       }
     }
   }
