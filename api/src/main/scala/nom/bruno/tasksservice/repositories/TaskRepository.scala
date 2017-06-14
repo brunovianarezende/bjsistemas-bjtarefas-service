@@ -10,6 +10,14 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
 trait TaskRepository {
+  def getPriorityForTaskAndPrevious(reference: Task): Future[(Int, Int)] = ???
+
+  def getPriorityForTaskAndNext(reference: Task): Future[(Int, Int)] = ???
+
+  def reassignPriorities(): Future[Int] = ???
+
+  def updateTaskPriority(task: Task, newPriority: Int): Future[Int] = ???
+
   def updateTask(taskToUpdate: Task): Future[Int]
 
   def getAllTasks: Future[Seq[Task]]
@@ -72,12 +80,13 @@ class TaskRepositoryDb @Inject()(val db: Database)
   }
 }
 
+// scalaWart -> overcome the fact that scala classes can't have only implicit parameter lists
 class TaskRepositoryStub(scalaWart: Boolean = true)(implicit val executionContext: ExecutionContext) extends TaskRepository {
-  // scalaWart -> overcome the fact that scala classes can't have only implicit parameter lists
 
-  class Record(var task: Task, var deleted: Boolean)
+  class Record(var task: Task, var deleted: Boolean, var priority: Int)
 
   private var nextId = 1
+  private var smallerPriority = 0
 
   private val records: ListBuffer[Record] = new ListBuffer[Record]
 
@@ -90,12 +99,11 @@ class TaskRepositoryStub(scalaWart: Boolean = true)(implicit val executionContex
       case -1 => Future {
         0
       }
-      case position => {
+      case position =>
         f(records(position))
         Future {
           1
         }
-      }
     }
   }
 
@@ -111,7 +119,7 @@ class TaskRepositoryStub(scalaWart: Boolean = true)(implicit val executionContex
 
   override def getTasks(deleted: Boolean): Future[Seq[Task]] = {
     Future {
-      records.filter(_.deleted == deleted).map(_.task)
+      records.filter(_.deleted == deleted).sortBy(_.priority).map(_.task)
     }
   }
 
@@ -140,15 +148,52 @@ class TaskRepositoryStub(scalaWart: Boolean = true)(implicit val executionContex
 
   override def addTask(task: Task): Future[Int] = {
     val newTask = task.copy(id = Some(nextId))
-    records.insert(0, new Record(newTask, false))
+    smallerPriority -= 1000
+    records.insert(0, new Record(newTask, false, smallerPriority))
     nextId += 1
     Future {
       newTask.id.get
     }
   }
 
+  override def getPriorityForTaskAndPrevious(reference: Task): Future[(Int, Int)] = {
+    val index = findRecordIndex(reference.id.get)
+    val myPriority = records(index).priority
+    Future {
+      (myPriority, records.map(_.priority).filter(_ < myPriority).reduceOption(Math.max).getOrElse(myPriority - 1000))
+    }
+  }
+
+  override def getPriorityForTaskAndNext(reference: Task): Future[(Int, Int)] = {
+    val index = findRecordIndex(reference.id.get)
+    val myPriority = records(index).priority
+    Future {
+      (myPriority, records.map(_.priority).filter(_ > myPriority).reduceOption(Math.min).getOrElse(myPriority + 1000))
+    }
+  }
+
+  override def reassignPriorities(): Future[Int] = {
+    val interval = Int.MaxValue / records.size
+
+    var nextPriority = 0
+    records.foreach(r => {
+      r.priority = nextPriority
+      nextPriority += interval
+    })
+    Future {
+      records.size
+    }
+  }
+
+  override def updateTaskPriority(task: Task, newPriority: Int): Future[Int] = {
+    updateRecord(task.id.get, r => r.priority = newPriority)
+  }
+
   private def initRecords(tasks: Seq[Task]): Unit = {
-    tasks.foreach(t => records.append(new Record(t, false)))
+    tasks.reverse.foreach(t => {
+      smallerPriority -= 1000
+      records.append(new Record(t, false, smallerPriority))
+    })
     nextId = records.map(_.task.id.get).max + 1
   }
 }

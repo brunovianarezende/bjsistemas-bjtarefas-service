@@ -10,9 +10,35 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class TasksService @Inject()(taskRepository: TaskRepository)
                             (@Named("EC") implicit val executionContext: ExecutionContext) {
-  def placeTaskBefore(task1: Task, task2: Task): Future[Unit] = ???
+  def placeTaskBefore(taskToMove: Task, reference: Task): Future[Unit] = {
+    placeTask(taskToMove, reference, taskRepository.getPriorityForTaskAndPrevious)
+  }
 
-  def placeTaskAfter(task1: Task, task2: Task): Future[Unit] = ???
+  def placeTaskAfter(taskToMove: Task, reference: Task): Future[Unit] = {
+    placeTask(taskToMove, reference, taskRepository.getPriorityForTaskAndNext)
+  }
+
+  private def placeTask(taskToMove: Task, reference: Task, getPrioritiesMethod: (Task => Future[(Int, Int)])): Future[Unit] = {
+    getPrioritiesMethod(reference).map {
+      case (referencePriority, otherPriority) => {
+        if (Math.abs(otherPriority - referencePriority) > 1) {
+          val newPriority = (otherPriority + referencePriority) / 2
+          taskRepository.updateTaskPriority(taskToMove, newPriority) map (_ => ())
+        }
+        else {
+          taskRepository.reassignPriorities() map { _ =>
+            getPrioritiesMethod(reference).map {
+              case (newReferencePriority, newOtherPriority) => {
+                val newPriority = (newOtherPriority + newReferencePriority) / 2
+                taskRepository.updateTaskPriority(taskToMove, newPriority) map (_ => ())
+              }
+            }
+          }
+
+        }
+      }
+    }
+  }
 
   def validateUpdateTask(id: Int, taskUpdate: TaskUpdate): Future[Option[Task]] = {
     taskRepository.getTask(id) map {

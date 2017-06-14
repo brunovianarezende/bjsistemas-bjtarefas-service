@@ -110,11 +110,11 @@ class TasksServiceTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     Await.result(service.searchForTasks, Duration.Inf) should be(expectedTasks)
   }
 
-  test("move task") {
+  test("place task before") {
     val initialTasks = (0 to 4).map(i => Task(Some(i), "title" + i, "description" + i))
     val taskRepository = TaskRepositoryStub(initialTasks)
     val service = injector(taskRepository).getInstance(classOf[TasksService])
-    Await.result(service.moveTask(initialTasks(3), 1), Duration.Inf)
+    Await.result(service.placeTaskBefore(initialTasks(3), initialTasks(1)), Duration.Inf)
     val expectedIds = Seq(0, 3, 1, 2, 4)
     Await.result(taskRepository.getTasks(), Duration.Inf).map(_.id.get) should be(expectedIds)
   }
