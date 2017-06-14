@@ -12,7 +12,9 @@ class TasksService @Inject()(taskRepository: TaskRepository)
                             (@Named("EC") implicit val executionContext: ExecutionContext) {
   def validateTaskPosition(position: Int): Future[Boolean] = ???
 
-  def moveTask(task: Task, position: Int): Future[Unit] = ???
+  def moveTask(task: Task, position: Int): Future[Unit] = {
+    Future{}
+  }
 
   def getNumberOfTasks: Future[Int] = ???
 
@@ -30,8 +32,8 @@ class TasksService @Inject()(taskRepository: TaskRepository)
 
   def addTask(taskData: TaskCreation): Future[Task] = {
     val newTask = Task(None, taskData.title, taskData.description)
-    taskRepository.addTask(newTask) map {id =>
-      newTask.copy(id=Some(id))
+    taskRepository.addTask(newTask) map { id =>
+      newTask.copy(id = Some(id))
     }
   }
 

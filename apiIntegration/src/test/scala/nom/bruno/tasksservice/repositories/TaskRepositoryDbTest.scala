@@ -10,7 +10,7 @@ import scala.concurrent.ExecutionContext.Implicits
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext}
 
-class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
+class TaskRepositoryDbTest extends FunSuite with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
   protected implicit def executor: ExecutionContext = Implicits.global
 
   lazy val db: Database = Database.forConfig("mysql")
@@ -42,13 +42,13 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
   }
 
   test("get all tasks") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val tasks = Await.result(taskRepository.getAllTasks, Duration.Inf)
     tasks should be(Seq(task1, task2))
   }
 
   test("delete task") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val numDeleted = Await.result(taskRepository.deleteTask(task1.id.get), Duration.Inf)
     numDeleted should be(1)
     val tasks = Await.result(taskRepository.getAllTasks, Duration.Inf)
@@ -56,7 +56,7 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
   }
 
   test("trying to delete a task that doesn't exist shouldn't cause a problem") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val numDeleted = Await.result(taskRepository.deleteTask(-1), Duration.Inf)
     numDeleted should be(0)
     val tasks = Await.result(taskRepository.getAllTasks, Duration.Inf)
@@ -64,7 +64,7 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
   }
 
   test("mark as deleted") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val numChanged = Await.result(taskRepository.markAsDeleted(task1.id.get), Duration.Inf)
     numChanged should be(1)
     val tasks = Await.result(taskRepository.getAllTasks, Duration.Inf)
@@ -72,19 +72,19 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
   }
 
   test("get task") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val task = Await.result(taskRepository.getTask(task1.id.get), Duration.Inf)
     task should be(Some(task1))
   }
 
   test("get task that doesn't exist") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val task = Await.result(taskRepository.getTask(-1), Duration.Inf)
     task should be(None)
   }
 
   test("update task") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val updatedTask = task1.copy(title = "New Title", description = "New description")
     Await.result(taskRepository.updateTask(updatedTask), Duration.Inf)
     val task = Await.result(taskRepository.getTask(task1.id.get), Duration.Inf)
@@ -93,7 +93,7 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
 
 
   test("trying to update a task that doesn't exist shouldn't cause a problem") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val task = Task(Some(-1), "a", "b")
     val numUpdated = Await.result(taskRepository.updateTask(task), Duration.Inf)
     numUpdated should be(0)
@@ -102,7 +102,7 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
   }
 
   test("Add task") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val task = Task(None, "a", "b")
     val newId = Await.result(taskRepository.addTask(task), Duration.Inf)
     assert(newId > 0)
@@ -112,7 +112,7 @@ class TaskRepositoryTest extends FunSuite with Matchers with BeforeAndAfterAll w
   }
 }
 
-class TaskRepositorySearchTest extends FunSuite with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
+class TaskRepositoryDbSearchTest extends FunSuite with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
   protected implicit def executor: ExecutionContext = Implicits.global
 
   lazy val db: Database = Database.forConfig("mysql")
@@ -141,13 +141,13 @@ class TaskRepositorySearchTest extends FunSuite with Matchers with BeforeAndAfte
   }
 
   test("get non deleted tasks") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val tasks = Await.result(taskRepository.getTasks(deleted = false), Duration.Inf)
     tasks should be(Seq(task1, task2))
   }
 
   test("get deleted tasks") {
-    val taskRepository = new TaskRepository(db)
+    val taskRepository = new TaskRepositoryDb(db)
     val tasks = Await.result(taskRepository.getTasks(deleted = true), Duration.Inf)
     tasks should be(Seq(task3))
   }
