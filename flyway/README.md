@@ -1,3 +1,12 @@
+Export migrations
+=================
+
+To export migrations to be able to execute them through command line, one
+must do (it assumes the command will be executed in the repository's
+root ):
+
+`tar -cvzf migration.tgz --directory="./flyway/src/main/resources/db/" .`
+
 How to execute migrations
 =========================
 

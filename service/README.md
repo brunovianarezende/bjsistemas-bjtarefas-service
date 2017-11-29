@@ -20,13 +20,3 @@ One can see what will be the generated structure by running:
 and then look at:
 
 `./service/target/universal/stage/`
-
-How to deploy
-=============
-
-run the command `sudo dpkg -i /path/to/deb/file` followed by
-`sudo apt install -f` I any of the dependencies is not found. If you want to
-make sure the dependencies aren't uninstalled when you uninstall the service,
-you can manually run `sudo apt install <the dependency>` for each of such
-dependencies (ubuntu will change the dependency status to 'manually
-installed').
